@@ -1,0 +1,48 @@
+name: Build Jadwali Android
+
+on:
+workflow_dispatch:
+
+jobs:
+build:
+runs-on: ubuntu-latest
+
+steps:
+  - name: Download repository
+    uses: actions/checkout@v4
+
+  - name: Set up Java
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
+
+  - name: Unzip project
+    run: |
+      unzip JadwaliAndroid_Source.zip -d extracted
+      echo "ZIP contents:"
+      ls -la extracted
+
+  - name: Locate Gradle project
+    run: |
+      find extracted -name gradlew -type f
+
+  - name: Build APK
+    run: |
+      GRADLEW=$(find extracted -name gradlew -type f | head -n 1)
+      if [ -z "$GRADLEW" ]; then
+        echo "ERROR: gradlew was not found in the ZIP file."
+        exit 1
+      fi
+      PROJECT_DIR=$(dirname "$GRADLEW")
+      chmod +x "$GRADLEW"
+      cd "$PROJECT_DIR"
+      ./gradlew assembleDebug
+
+  - name: Upload APK
+    if: success()
+    uses: actions/upload-artifact@v4
+    with:
+      name: Jadwali-APK
+      path: extracted/**/*.apk
+      if-no-files-found: error
